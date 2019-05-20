@@ -3,7 +3,7 @@ library(taxize)
 
 # Define UI for app that draws a histogram ----
 
-kingdom_list <- c("Archaea","Bacteria","Eukaryota","Fungi","Metazoa","Plant"="Viridiplantae","Viruses")
+superkingdom_list <- class_table.all[which(class_table.all$rank == 'superkingdom'),]$name
 
 ui <- fluidPage(
   
@@ -40,9 +40,16 @@ ui <- fluidPage(
     tabsetPanel(
       type = "tabs",
       
-      tabPanel("Kingdom",
-               radioButtons("kingdomGroup", label = "Choose a kingdom:", 
-                                  choices = kingdom_list),
+      tabPanel("Superkingdom",
+               radioButtons("superkingdomGroup", label = "Choose a superkingdom:", 
+                            choices = superkingdom_list),
+               hr(),
+               actionButton("superkingdom_update","Update")
+      ),
+      
+      tabPanel(title = uiOutput("kingdom_panel"),
+               checkboxGroupInput('kingdomGroup', label = "Choose a kingdom:"),
+               hr(),
                actionButton("kingdom_update","Update")
       ),
       
@@ -59,24 +66,28 @@ ui <- fluidPage(
                hr(),
                actionButton("class_update","Update")
       ),
+      
       tabPanel(title = uiOutput("order_panel"),
                checkboxGroupInput("orderGroup", label = "Choose an order:"),
                actionLink("order_selectall","select all"),
                hr(),
                actionButton("order_update","Update")
       ),
+      
       tabPanel(title = uiOutput("family_panel"),
                checkboxGroupInput("familyGroup", label = "Choose a family:"),
                actionLink("family_selectall","select all"),
                hr(),
                actionButton("family_update","Update")
       ),
+      
       tabPanel(title = uiOutput("genus_panel"),
                checkboxGroupInput("genusGroup", label = "Choose a genus:"),
                actionLink("genus_selectall","select all"),
                hr(),
                actionButton("genus_update","Update")
       ),
+      
       tabPanel(title = uiOutput("species_panel"),
                checkboxGroupInput("speciesGroup", label = "Choose a species:"),
                actionLink("species_selectall","select all"),
@@ -90,7 +101,15 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram ----
 server <- function(input, output, session) {
   output$value <- renderPrint({ input$kingdomGroup })
-  
+
+  k_list.sk <- reactiveVal(character(0))
+  p_list.sk <- reactiveVal(character(0))
+  c_list.sk <- reactiveVal(character(0))
+  o_list.sk <- reactiveVal(character(0))
+  f_list.sk <- reactiveVal(character(0))
+  g_list.sk <- reactiveVal(character(0))
+  s_list.sk <- reactiveVal(character(0))
+    
   p_list.k <- reactiveVal(character(0))
   c_list.k <- reactiveVal(character(0))
   o_list.k <- reactiveVal(character(0))
@@ -118,13 +137,58 @@ server <- function(input, output, session) {
   
   s_list.g <- reactiveVal(character(0))
   
+  output$kingdom_panel = renderText("Kingdom")
   output$phylum_panel = renderText("Phylum")
   output$class_panel = renderText("Class")
   output$order_panel = renderText("Order")
   output$family_panel = renderText("Family")
   output$genus_panel = renderText("Genus")
   output$species_panel = renderText("Species")
-  
+
+  observeEvent(input$superkingdom_update,{
+    sk_input <- input$superkingdomGroup
+    
+    k_list.new <- character(0)
+    p_list.new <- character(0)
+    c_list.new <- character(0)
+    o_list.new <- character(0)
+    f_list.new <- character(0)
+    g_list.new <- character(0)
+    s_list.new <- character(0)
+    
+    children_list <- class_table.all[which(class_table.all$parent_taxon %in% sk_input),]
+    k_list.new <- children_list[which(children_list$rank == 'kingdom'),]$name
+    p_list.new <- children_list[which(children_list$rank == 'phylum'),]$name
+    c_list.new <- children_list[which(children_list$rank == 'class'),]$name
+    o_list.new <- children_list[which(children_list$rank == 'order'),]$name
+    f_list.new <- children_list[which(children_list$rank == 'family'),]$name
+    g_list.new <- children_list[which(children_list$rank == 'genus'),]$name
+    s_list.new <- children_list[which(children_list$rank == 'species'),]$name
+    
+    output$kingdom_panel <- renderText(paste("Kingdom (",length(k_list.new),")",sep=""))
+    output$phylum_panel <- renderText(paste("Phylum (",length(p_list.new),")",sep=""))
+    output$class_panel <- renderText(paste("Class (",length(c_list.new),")",sep=""))
+    output$order_panel <- renderText(paste("Order (",length(o_list.new),")",sep=""))
+    output$family_panel <- renderText(paste("Family (",length(f_list.new),")",sep=""))
+    output$genus_panel <- renderText(paste("Genus (",length(g_list.new),")",sep=""))
+    output$species_panel <- renderText(paste("Species (",length(s_list.new),")",sep=""))
+    
+    updateCheckboxGroupInput(session, "kingdomGroup", choices = sort(k_list.new), selected = k_list.new)
+    updateCheckboxGroupInput(session, "phylumGroup", choices = sort(p_list.new), selected = p_list.new)
+    updateCheckboxGroupInput(session, "classGroup", choices = sort(c_list.new), selected = c_list.new)
+    updateCheckboxGroupInput(session, "orderGroup", choices = sort(o_list.new), selected = o_list.new)
+    updateCheckboxGroupInput(session, "familyGroup", choices = sort(f_list.new), selected = f_list.new)
+    updateCheckboxGroupInput(session, "genusGroup", choices = sort(g_list.new), selected = g_list.new)
+    updateCheckboxGroupInput(session, "speciesGroup", choices = sort(s_list.new), selected = s_list.new)
+    
+    k_list.sk(k_list.new)
+    p_list.sk(p_list.new)
+    c_list.sk(c_list.new)
+    o_list.sk(o_list.new)
+    f_list.sk(f_list.new)
+    g_list.sk(g_list.new)
+    s_list.sk(s_list.new)
+  })
   
   observeEvent(input$kingdom_update,{
     k_input <- input$kingdomGroup
@@ -136,41 +200,40 @@ server <- function(input, output, session) {
     g_list.new <- character(0)
     s_list.new <- character(0)
     
-    for(k in k_input){
-      children_list <- NULL
-      children_list <- children(k, db = 'ncbi')
-      if(!is.null(children_list)){
-        children_list <- children_list[[1]]
-        
-        children_list.p <- children_list[which(children_list$childtaxa_rank == 'phylum'),]
-        children_list.c <- children_list[which(children_list$childtaxa_rank == 'class'),]
-        children_list.o <- children_list[which(children_list$childtaxa_rank == 'order'),]
-        children_list.f <- children_list[which(children_list$childtaxa_rank == 'family'),]
-        children_list.g <- children_list[which(children_list$childtaxa_rank == 'genus'),]
-        children_list.s <- children_list[which(children_list$childtaxa_rank == 'species'),]
-        
-        p_list.new <- append(p_list.new, children_list.p$childtaxa_name)
-        c_list.new <- append(c_list.new, children_list.c$childtaxa_name)
-        o_list.new <- append(o_list.new, children_list.o$childtaxa_name)
-        f_list.new <- append(f_list.new, children_list.f$childtaxa_name)
-        g_list.new <- append(g_list.new, children_list.g$childtaxa_name)
-        s_list.new <- append(s_list.new, children_list.s$childtaxa_name)
-      }
-    }
+    children_list <- class_table.all[which(class_table.all$parent_taxon %in% k_input),]
+    p_list.new <- children_list[which(children_list$rank == 'phylum'),]$name
+    c_list.new <- children_list[which(children_list$rank == 'class'),]$name
+    o_list.new <- children_list[which(children_list$rank == 'order'),]$name
+    f_list.new <- children_list[which(children_list$rank == 'family'),]$name
+    g_list.new <- children_list[which(children_list$rank == 'genus'),]$name
+    s_list.new <- children_list[which(children_list$rank == 'species'),]$name
+
+    phylum_choices <- unique(c(p_list.new,
+                               p_list.sk()))    
+    class_choices <- unique(c(c_list.new,
+                              c_list.sk()))
+    order_choices <- unique(c(o_list.new,
+                              o_list.sk()))
+    family_choices <- unique(c(f_list.new,
+                               f_list.sk()))
+    genus_choices <- unique(c(g_list.new,
+                              g_list.sk()))
+    species_choices <- unique(c(s_list.new,
+                                s_list.sk()))
     
-    output$phylum_panel <- renderText(paste("Phylum (",length(p_list.new),")",sep=""))
-    output$class_panel <- renderText(paste("Class (",length(c_list.new),")",sep=""))
-    output$order_panel <- renderText(paste("Order (",length(o_list.new),")",sep=""))
-    output$family_panel <- renderText(paste("Family (",length(f_list.new),")",sep=""))
-    output$genus_panel <- renderText(paste("Genus (",length(g_list.new),")",sep=""))
-    output$species_panel <- renderText(paste("Species (",length(s_list.new),")",sep=""))
-    
-    updateCheckboxGroupInput(session, "phylumGroup", choices = sort(p_list.new), selected = p_list.new)
-    updateCheckboxGroupInput(session, "classGroup", choices = sort(c_list.new), selected = c_list.new)
-    updateCheckboxGroupInput(session, "orderGroup", choices = sort(o_list.new), selected = o_list.new)
-    updateCheckboxGroupInput(session, "familyGroup", choices = sort(f_list.new), selected = f_list.new)
-    updateCheckboxGroupInput(session, "genusGroup", choices = sort(g_list.new), selected = g_list.new)
-    updateCheckboxGroupInput(session, "speciesGroup", choices = sort(s_list.new), selected = s_list.new)
+    updateCheckboxGroupInput(session, "phylumGroup", choices = sort(phylum_choices), selected = phylum_choices)
+    updateCheckboxGroupInput(session, "classGroup", choices = sort(class_choices), selected = class_choices)
+    updateCheckboxGroupInput(session, "orderGroup", choices = sort(order_choices), selected = order_choices)
+    updateCheckboxGroupInput(session, "familyGroup", choices = sort(family_choices), selected = family_choices)
+    updateCheckboxGroupInput(session, "genusGroup", choices = sort(genus_choices), selected = genus_choices)
+    updateCheckboxGroupInput(session, "speciesGroup", choices = sort(species_choices), selected = species_choices)
+ 
+    output$phylum_panel <- renderText(paste("Phylum (",length(phylum_choices),")",sep=""))   
+    output$class_panel <- renderText(paste("Class (",length(class_choices),")",sep=""))
+    output$order_panel <- renderText(paste("Order (",length(order_choices),")",sep=""))
+    output$family_panel <- renderText(paste("Family (",length(family_choices),")",sep=""))
+    output$genus_panel <- renderText(paste("Genus (",length(genus_choices),")",sep=""))
+    output$species_panel <- renderText(paste("Species (",length(species_choices),")",sep=""))
     
     p_list.k(p_list.new)
     c_list.k(c_list.new)
@@ -189,39 +252,27 @@ server <- function(input, output, session) {
     g_list.new <- character(0)
     s_list.new <- character(0)
     
-    withProgress(message="Getting children taxons from selected phyla",value=0,{
-      for(p in p_input){
-        children_list <- NULL
-        Sys.sleep(0.1)
-        children_list <- children(p, db = 'ncbi')
-        if(!is.null(children_list)){
-          children_list <- children_list[[1]]
-          
-          children_list.c <- children_list[which(children_list$childtaxa_rank == 'class'),]
-          children_list.o <- children_list[which(children_list$childtaxa_rank == 'order'),]
-          children_list.f <- children_list[which(children_list$childtaxa_rank == 'family'),]
-          children_list.g <- children_list[which(children_list$childtaxa_rank == 'genus'),]
-          children_list.s <- children_list[which(children_list$childtaxa_rank == 'species'),]
-          
-          c_list.new <- append(c_list.new, children_list.c$childtaxa_name)
-          o_list.new <- append(o_list.new, children_list.o$childtaxa_name)
-          f_list.new <- append(f_list.new, children_list.f$childtaxa_name)
-          g_list.new <- append(g_list.new, children_list.g$childtaxa_name)
-          s_list.new <- append(s_list.new, children_list.s$childtaxa_name)
-        }
-        incProgress(1/length(p_input))
-      }
-    })
+    children_list <- class_table.all[which(class_table.all$parent_taxon %in% p_input),]
+    c_list.new <- children_list[which(children_list$rank == 'class'),]$name
+    o_list.new <- children_list[which(children_list$rank == 'order'),]$name
+    f_list.new <- children_list[which(children_list$rank == 'family'),]$name
+    g_list.new <- children_list[which(children_list$rank == 'genus'),]$name
+    s_list.new <- children_list[which(children_list$rank == 'species'),]$name
     
     class_choices <- unique(c(c_list.new,
+                              c_list.sk(),
                               c_list.k()))
     order_choices <- unique(c(o_list.new,
+                              o_list.sk(),
                               o_list.k()))
     family_choices <- unique(c(f_list.new,
+                               f_list.sk(),
                                f_list.k()))
     genus_choices <- unique(c(g_list.new,
+                              g_list.sk(),
                               g_list.k()))
     species_choices <- unique(c(s_list.new,
+                                s_list.sk(),
                                 s_list.k()))
     
     updateCheckboxGroupInput(session, "classGroup", choices = sort(class_choices), selected = class_choices)
@@ -251,38 +302,26 @@ server <- function(input, output, session) {
     g_list.new <- character(0)
     s_list.new <- character(0)
     
-    withProgress(message="Getting children taxons from selected classes", value=0, {
-        for(c in c_input){
-          children_list <- NULL
-          Sys.sleep(0.1)
-          children_list <- children(c, db = 'ncbi')
-          if(!is.null(children_list)){
-            children_list <- children_list[[1]]
-            
-            children_list.o <- children_list[which(children_list$childtaxa_rank == 'order'),]
-            children_list.f <- children_list[which(children_list$childtaxa_rank == 'family'),]
-            children_list.g <- children_list[which(children_list$childtaxa_rank == 'genus'),]
-            children_list.s <- children_list[which(children_list$childtaxa_rank == 'species'),]
-            
-            o_list.new <- append(o_list.new, children_list.o$childtaxa_name)
-            f_list.new <- append(f_list.new, children_list.f$childtaxa_name)
-            g_list.new <- append(g_list.new, children_list.g$childtaxa_name)
-            s_list.new <- append(s_list.new, children_list.s$childtaxa_name)
-          }
-          incProgress(1/length(c_input))
-        }
-    })
+    children_list <- class_table.all[which(class_table.all$parent_taxon %in% c_input),]
+    o_list.new <- children_list[which(children_list$rank == 'order'),]$name
+    f_list.new <- children_list[which(children_list$rank == 'family'),]$name
+    g_list.new <- children_list[which(children_list$rank == 'genus'),]$name
+    s_list.new <- children_list[which(children_list$rank == 'species'),]$name
     
     order_choices <- unique(c(o_list.new,
+                              o_list.sk(),
                               o_list.k(),
                               o_list.p()))
     family_choices <- unique(c(f_list.new,
+                               f_list.sk(),
                                f_list.k(),
                                f_list.p()))
     genus_choices <- unique(c(g_list.new,
+                              g_list.sk(),
                               g_list.k(),
                               g_list.p()))
     species_choices <- unique(c(s_list.new,
+                                s_list.sk(),
                                 s_list.k(),
                                 s_list.p()))
     
@@ -304,44 +343,32 @@ server <- function(input, output, session) {
   
   observeEvent(input$order_update,{
     o_input <- input$orderGroup
-
+    
     f_list.new <- character(0)
     g_list.new <- character(0)
     s_list.new <- character(0)
     
-    withProgress(message='Getting children taxons from selected orders',value=0,{
-      for(o in o_input){
-        children_list <- NULL
-        Sys.sleep(0.1)
-        children_list <- children(o, db = 'ncbi')
-        if(!is.null(children_list)){
-          children_list <- children_list[[1]]
-          
-          children_list.f <- children_list[which(children_list$childtaxa_rank == 'family'),]
-          children_list.g <- children_list[which(children_list$childtaxa_rank == 'genus'),]
-          children_list.s <- children_list[which(children_list$childtaxa_rank == 'species'),]
-          
-          f_list.new <- append(f_list.new, children_list.f$childtaxa_name)
-          g_list.new <- append(g_list.new, children_list.g$childtaxa_name)
-          s_list.new <- append(s_list.new, children_list.s$childtaxa_name)
-        }
-        incProgress(1/(length(o_input)))
-      }
-    })
-
+    children_list <- class_table.all[which(class_table.all$parent_taxon %in% o_input),]
+    f_list.new <- children_list[which(children_list$rank == 'family'),]$name
+    g_list.new <- children_list[which(children_list$rank == 'genus'),]$name
+    s_list.new <- children_list[which(children_list$rank == 'species'),]$name
+    
     family_choices <- unique(c(f_list.new,
+                               f_list.sk(),
                                f_list.k(),
                                f_list.p(),
                                f_list.c()))
     genus_choices <- unique(c(g_list.new,
+                              g_list.sk(),
                               g_list.k(),
                               g_list.p(),
                               g_list.c()))
     species_choices <- unique(c(s_list.new,
+                                s_list.sk(),
                                 s_list.k(),
                                 s_list.p(),
                                 s_list.c()))
-
+    
     updateCheckboxGroupInput(session, "familyGroup", choices = sort(family_choices), selected = family_choices)
     updateCheckboxGroupInput(session, "genusGroup", choices = sort(genus_choices), selected = genus_choices)
     updateCheckboxGroupInput(session, "speciesGroup", choices = sort(species_choices), selected = species_choices)
@@ -362,30 +389,18 @@ server <- function(input, output, session) {
     g_list.new <- character(0)
     s_list.new <- character(0)
     
-    withProgress(message='Getting children taxon from selected families', value=0,{
-      for(f in f_input){
-        children_list <- NULL
-        Sys.sleep(0.1)
-        children_list <- children(f, db = 'ncbi')
-        if(!is.null(children_list)){
-          children_list <- children_list[[1]]
-          
-          children_list.g <- children_list[which(children_list$childtaxa_rank == 'genus'),]
-          children_list.s <- children_list[which(children_list$childtaxa_rank == 'species'),]
-  
-          g_list.new <- append(g_list.new, children_list.g$childtaxa_name)
-          s_list.new <- append(s_list.new, children_list.s$childtaxa_name)
-        }
-        incProgress(1/length(f_input))
-      }
-    })
+    children_list <- class_table.all[which(class_table.all$parent_taxon %in% f_input),]
+    g_list.new <- children_list[which(children_list$rank == 'genus'),]$name
+    s_list.new <- children_list[which(children_list$rank == 'species'),]$name
     
     genus_choices <- unique(c(g_list.new,
+                              g_list.sk(),
                               g_list.k(),
                               g_list.p(),
                               g_list.c(),
                               g_list.o()))
     species_choices <- unique(c(s_list.new,
+                                s_list.sk(),
                                 s_list.k(),
                                 s_list.p(),
                                 s_list.c(),
@@ -406,23 +421,11 @@ server <- function(input, output, session) {
     
     s_list.new <- character(0)
     
-    withProgress(message='Getting children taxons from selected genuses',value=0,{
-      for(g in g_input){
-        children_list <- NULL
-        Sys.sleep(0.5)
-        children_list <- children(g, db = 'ncbi')
-        if(!is.null(children_list)){
-          children_list <- children_list[[1]]
-          
-          children_list.s <- children_list[which(children_list$childtaxa_rank == 'species'),]
-          
-          s_list.new <- append(s_list.new, children_list.s$childtaxa_name)
-        }
-        incProgress(1/length(g_input))
-      }
-    })
+    children_list <- class_table.all[which(class_table.all$parent_taxon %in% g_input),]
+    s_list.new <- children_list[which(children_list$rank == 'species'),]$name
     
     species_choices <- unique(c(s_list.new,
+                                s_list.sk(),
                                 s_list.k(),
                                 s_list.p(),
                                 s_list.c(),
@@ -441,14 +444,14 @@ server <- function(input, output, session) {
     if(input$phylum_selectall%%2 == 1){
       updateCheckboxGroupInput(session,
                                "phylumGroup",
-                               choices=sort(unique(p_list.k()))
+                               choices=sort(unique(c(p_list.sk(),p_list.k())))
       )
     }
     else{
       updateCheckboxGroupInput(session,
                                "phylumGroup",
-                               choices=sort(unique(p_list.k())),
-                               selected=sort(unique(p_list.k()))
+                               choices=sort(unique(c(p_list.sk(),p_list.k()))),
+                               selected=sort(unique(c(p_list.sk(),p_list.k())))
       )
     }
   })
@@ -456,14 +459,14 @@ server <- function(input, output, session) {
     if(input$class_selectall%%2 == 1){
       updateCheckboxGroupInput(session,
                                "classGroup",
-                               choices=sort(unique(c(c_list.k(),c_list.p())))
+                               choices=sort(unique(c(c_list.sk(),c_list.k(),c_list.p())))
       )
     }
     else{
       updateCheckboxGroupInput(session,
                                "classGroup",
-                               choices=sort(unique(c(c_list.k(),c_list.p()))),
-                               selected=sort(unique(c(c_list.k(),c_list.p())))
+                               choices=sort(unique(c(c_list.sk(),c_list.k(),c_list.p()))),
+                               selected=sort(unique(c(c_list.sk(),c_list.k(),c_list.p())))
       )
     }
   })
@@ -471,14 +474,14 @@ server <- function(input, output, session) {
     if(input$order_selectall%%2 == 1){
       updateCheckboxGroupInput(session,
                                "orderGroup",
-                               choices=sort(unique(c(o_list.k(),o_list.p(),o_list.c())))
+                               choices=sort(unique(c(o_list.sk(),o_list.k(),o_list.p(),o_list.c())))
       )
     }
     else{
       updateCheckboxGroupInput(session,
                                "orderGroup",
-                               choices=sort(unique(c(o_list.k(),o_list.p(),o_list.c()))),
-                               selected=sort(unique(c(o_list.k(),o_list.p(),o_list.c())))
+                               choices=sort(unique(c(o_list.sk(),o_list.k(),o_list.p(),o_list.c()))),
+                               selected=sort(unique(c(o_list.sk(),o_list.k(),o_list.p(),o_list.c())))
       )
     }
   })
@@ -486,14 +489,14 @@ server <- function(input, output, session) {
     if(input$family_selectall%%2 == 1){
       updateCheckboxGroupInput(session,
                                "familyGroup",
-                               choices=sort(unique(c(f_list.k(),f_list.p(),f_list.c(),f_list.o())))
+                               choices=sort(unique(c(f_list.sk(),f_list.k(),f_list.p(),f_list.c(),f_list.o())))
       )
     }
     else{
       updateCheckboxGroupInput(session,
                                "familyGroup",
-                               choices=sort(unique(c(f_list.k(),f_list.p(),f_list.c(),f_list.o()))),
-                               selected=sort(unique(c(f_list.k(),f_list.p(),f_list.c(),f_list.o())))
+                               choices=sort(unique(c(f_list.sk(),f_list.k(),f_list.p(),f_list.c(),f_list.o()))),
+                               selected=sort(unique(c(f_list.sk(),f_list.k(),f_list.p(),f_list.c(),f_list.o())))
       )
     }
   })
@@ -501,14 +504,14 @@ server <- function(input, output, session) {
     if(input$genus_selectall%%2 == 1){
       updateCheckboxGroupInput(session,
                                "genusGroup",
-                               choices=sort(unique(c(g_list.k(),g_list.p(),g_list.c(),g_list.o(),g_list.f())))
+                               choices=sort(unique(c(g_list.sk(),g_list.k(),g_list.p(),g_list.c(),g_list.o(),g_list.f())))
       )
     }
     else{
       updateCheckboxGroupInput(session,
                                "genusGroup",
-                               choices=sort(unique(c(g_list.k(),g_list.p(),g_list.c(),g_list.o(),g_list.f()))),
-                               selected=sort(unique(c(g_list.k(),g_list.p(),g_list.c(),g_list.o(),g_list.f())))
+                               choices=sort(unique(c(g_list.sk(),g_list.k(),g_list.p(),g_list.c(),g_list.o(),g_list.f()))),
+                               selected=sort(unique(c(g_list.sk(),g_list.k(),g_list.p(),g_list.c(),g_list.o(),g_list.f())))
       )
     }
   })
@@ -516,14 +519,14 @@ server <- function(input, output, session) {
     if(input$species_selectall%%2 == 1){
       updateCheckboxGroupInput(session,
                                "speciesGroup",
-                               choices=sort(unique(c(s_list.k(),s_list.p(),s_list.c(),s_list.o(),s_list.f(),s_list.g())))
+                               choices=sort(unique(c(s_list.sk(),s_list.k(),s_list.p(),s_list.c(),s_list.o(),s_list.f(),s_list.g())))
       )
     }
     else{
       updateCheckboxGroupInput(session,
                                "speciesGroup",
-                               choices=sort(unique(c(s_list.k(),s_list.p(),s_list.c(),s_list.o(),s_list.f(),s_list.g()))),
-                               selected=sort(unique(c(s_list.k(),s_list.p(),s_list.c(),s_list.o(),s_list.f(),s_list.g())))
+                               choices=sort(unique(c(s_list.sk(),s_list.k(),s_list.p(),s_list.c(),s_list.o(),s_list.f(),s_list.g()))),
+                               selected=sort(unique(c(s_list.sk(),s_list.k(),s_list.p(),s_list.c(),s_list.o(),s_list.f(),s_list.g())))
       )
     }
   })
