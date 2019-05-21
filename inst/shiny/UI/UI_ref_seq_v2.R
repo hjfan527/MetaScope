@@ -2,16 +2,13 @@ library(shiny)
 library(taxize)
 
 # Define UI for app that draws a histogram ----
-
+load
 superkingdom_list <- class_table.all[which(class_table.all$rank == 'superkingdom'),]$name
 
 ui <- fluidPage(
   
   fluid=TRUE,
   theme = "bootstrap.min.css",
-  
-  # App title ----
-  titlePanel("Hello Shiny!"),
   
   tabPanel(title = "Library Generation",
            mainPanel(# the following lines could be uncommented when the download ref seq can
@@ -49,6 +46,7 @@ ui <- fluidPage(
       
       tabPanel(title = uiOutput("kingdom_panel"),
                checkboxGroupInput('kingdomGroup', label = "Choose a kingdom:"),
+               actionLink("kingdom_selectall","select all"),
                hr(),
                actionButton("kingdom_update","Update")
       ),
@@ -440,6 +438,21 @@ server <- function(input, output, session) {
   })
   
   # set action for "select all" actionLinks
+  observeEvent(input$kingdom_selectall,{
+    if(input$kingdom_selectall%%2 == 1){
+      updateCheckboxGroupInput(session,
+                               "kingdomGroup",
+                               choices=sort(unique(k_list.sk()))
+      )
+    }
+    else{
+      updateCheckboxGroupInput(session,
+                               "kingdomGroup",
+                               choices=sort(unique(k_list.sk())),
+                               selected=sort(unique(k_list.sk()))
+      )
+    }
+  })
   observeEvent(input$phylum_selectall,{
     if(input$phylum_selectall%%2 == 1){
       updateCheckboxGroupInput(session,
