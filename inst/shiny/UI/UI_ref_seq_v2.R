@@ -2,7 +2,19 @@ library(shiny)
 library(taxize)
 
 # Define UI for app that draws a histogram ----
-load
+
+get_species <- function(input_taxon, class_table.all){
+  input_table <- class_table.all[which(class_table.all$name %in% input_taxon),]
+  species_table <- input_table[which(input_table$rank == 'species'),]
+  notspecies_table <- input_table[which(input_table$rank != 'species'),]
+  if(nrow(notspecies_table) == 0){
+    return(species_table)
+  }else{
+    children_taxon <- class_table.all[which(class_table.all$parent_taxon %in% notspecies_table$name),]
+    return(rbind(species_table,get_species(children_taxon$name, class_table.all)))
+  }
+}
+
 superkingdom_list <- class_table.all[which(class_table.all$rank == 'superkingdom'),]$name
 
 ui <- fluidPage(
