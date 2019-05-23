@@ -21,6 +21,7 @@ ui <- fluidPage(
   
   fluid=TRUE,
   theme = "bootstrap.min.css",
+  titlePanel('Download Reference Sequence'),
   
   tabPanel(title = "Library Generation",
            mainPanel(# the following lines could be uncommented when the download ref seq can
@@ -41,8 +42,7 @@ ui <- fluidPage(
              checkboxInput("representative", "representative", value = TRUE, width = NULL),
              checkboxInput("reference", "reference", value = FALSE, width = NULL),
              
-             
-             actionButton("downloadref","Download Ref_Seq")
+             selectizeInput(inputId='search', label='Select a taxon(s):', choices = class_table.all$name, multiple=TRUE)
            )
   ),
   mainPanel(
@@ -53,56 +53,80 @@ ui <- fluidPage(
                radioButtons("superkingdomGroup", label = "Choose a superkingdom:", 
                             choices = superkingdom_list),
                hr(),
-               actionButton("superkingdom_update","Update")
+               actionButton("superkingdom_update","Update"),
+               br(),
+               br(),
+               actionButton("downloadref","Download Ref_Seq")
       ),
       
       tabPanel(title = uiOutput("kingdom_panel"),
                checkboxGroupInput('kingdomGroup', label = "Choose a kingdom:"),
-               actionLink("kingdom_selectall","select all"),
+               actionLink("kingdom_selectall","un/select all"),
                hr(),
-               actionButton("kingdom_update","Update")
+               actionButton("kingdom_update","Update"),
+               br(),
+               br(),
+               actionButton("downloadref","Download Ref_Seq")
       ),
       
       tabPanel(title = uiOutput("phylum_panel"),
                checkboxGroupInput("phylumGroup", label = "Choose a phylum:"),
-               actionLink("phylum_selectall","select all"),
+               actionLink("phylum_selectall","un/select all"),
                hr(),
-               actionButton("phylum_update","Update")
+               actionButton("phylum_update","Update"),
+               br(),
+               br(),
+               actionButton("downloadref","Download Ref_Seq")
       ),
       
       tabPanel(title = uiOutput("class_panel"),
                checkboxGroupInput("classGroup", label = "Choose a class:"),
-               actionLink("class_selectall","select all"),
+               actionLink("class_selectall","un/select all"),
                hr(),
-               actionButton("class_update","Update")
+               actionButton("class_update","Update"),
+               br(),
+               br(),
+               actionButton("downloadref","Download Ref_Seq")
       ),
       
       tabPanel(title = uiOutput("order_panel"),
                checkboxGroupInput("orderGroup", label = "Choose an order:"),
-               actionLink("order_selectall","select all"),
+               actionLink("order_selectall","un/select all"),
                hr(),
-               actionButton("order_update","Update")
+               actionButton("order_update","Update"),
+               br(),
+               br(),
+               actionButton("downloadref","Download Ref_Seq")
       ),
       
       tabPanel(title = uiOutput("family_panel"),
                checkboxGroupInput("familyGroup", label = "Choose a family:"),
-               actionLink("family_selectall","select all"),
+               actionLink("family_selectall","un/select all"),
                hr(),
-               actionButton("family_update","Update")
+               actionButton("family_update","Update"),
+               br(),
+               br(),
+               actionButton("downloadref","Download Ref_Seq")
       ),
       
       tabPanel(title = uiOutput("genus_panel"),
                checkboxGroupInput("genusGroup", label = "Choose a genus:"),
-               actionLink("genus_selectall","select all"),
+               actionLink("genus_selectall","un/select all"),
                hr(),
-               actionButton("genus_update","Update")
+               actionButton("genus_update","Update"),
+               br(),
+               br(),
+               actionButton("downloadref","Download Ref_Seq")
       ),
       
       tabPanel(title = uiOutput("species_panel"),
                checkboxGroupInput("speciesGroup", label = "Choose a species:"),
-               actionLink("species_selectall","select all"),
+               actionLink("species_selectall","un/select all"),
                hr(),
-               actionButton("species_update","Update")
+               actionButton("species_update","Update"),
+               br(),
+               br(),
+               actionButton("downloadref","Download Ref_Seq")
       )
     )
   )
