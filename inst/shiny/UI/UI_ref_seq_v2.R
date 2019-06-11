@@ -127,6 +127,16 @@ ui <- fluidPage(
                br(),
                br(),
                actionButton("downloadref","Download Ref_Seq")
+      ),
+      
+      tabPanel(title = uiOutput("strain_panel"),
+               checkboxGroupInput("strainGroup", label = "Choose a strain:"),
+               actionLink("strain_selectall","un/select all"),
+               hr(),
+               actionButton("strain_update","Update"),
+               br(),
+               br(),
+               actionButton("downloadref","Download Ref_Seq")
       )
     )
   )
@@ -171,6 +181,8 @@ server <- function(input, output, session) {
   
   s_list.g <- reactiveVal(character(0))
   
+  st_list.s <- reactiveVal(character(0))
+  
   output$kingdom_panel = renderText("Kingdom")
   output$phylum_panel = renderText("Phylum")
   output$class_panel = renderText("Class")
@@ -178,6 +190,7 @@ server <- function(input, output, session) {
   output$family_panel = renderText("Family")
   output$genus_panel = renderText("Genus")
   output$species_panel = renderText("Species")
+  output$strain_panel = renderText('Strain')
 
   observeEvent(input$superkingdom_update,{
     sk_input <- input$superkingdomGroup
@@ -473,6 +486,23 @@ server <- function(input, output, session) {
     s_list.g(s_list.new)
   })
   
+  observeEvent(input$species_update,{
+    s_input <- input$speciesGroup
+    
+    st_list.new <- character(0)
+    
+    children_list <- class_table.all[which(class_table.all$parent_taxon %in% s_input),]
+    st_list.new <- children_list[which(children_list$rank == 'strain'),]$name
+    
+    strain_choices <- unique(st_list.new)
+    
+    updateCheckboxGroupInput(session, "strainGroup", choices = sort(strain_choices), selected = strain_choices)
+    
+    output$strain_panel <- renderText(paste("Strain (",length(strain_choices),")",sep=""))
+    
+    st_list.s(st_list.new)
+  })
+  
   # set action for "select all" actionLinks
   observeEvent(input$kingdom_selectall,{
     if(input$kingdom_selectall%%2 == 1){
@@ -576,6 +606,21 @@ server <- function(input, output, session) {
                                "speciesGroup",
                                choices=sort(unique(c(s_list.sk(),s_list.k(),s_list.p(),s_list.c(),s_list.o(),s_list.f(),s_list.g()))),
                                selected=sort(unique(c(s_list.sk(),s_list.k(),s_list.p(),s_list.c(),s_list.o(),s_list.f(),s_list.g())))
+      )
+    }
+  })
+  observeEvent(input$strain_selectall,{
+    if(input$strain_selectall%%2 == 1){
+      updateCheckboxGroupInput(session,
+                               "strainGroup",
+                               choices=sort(unique(st_list.s))
+      )
+    }
+    else{
+      updateCheckboxGroupInput(session,
+                               "strainGroup",
+                               choices=sort(unique(st_list.s)),
+                               selected=sort(unique(st_list.s))
       )
     }
   })
