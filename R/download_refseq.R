@@ -111,31 +111,29 @@ download_refseq <- function(taxon, reference = TRUE, representative = FALSE,
     message("Loading the refseq table for ", parent_kingdom)
     to_grab <- c("archaea", "bacteria", "fungi", "plant", "viral")
     if (parent_kingdom %in% to_grab) {
-        refseq_link <- paste("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
+        refseq_link <- paste("https://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
                              parent_kingdom, "/assembly_summary.txt", sep = "")
-        refseq_table <- utils::read.table(refseq_link, header = TRUE,
-                                          sep = "\t", comment.char = "",
-                                          quote = "", skip = 1)
+        refseq_table <- read.table(refseq_link, header = TRUE, sep = "\t", comment.char = "", quote = "", skip = 1)
     } else if (parent_kingdom == "eukaryota") {
-        refseq_link_1 <- paste("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
+        refseq_link_1 <- paste("https://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
                                "vertebrate_mammalian", "/assembly_summary.txt",
                                sep = "")
         refseq_table_1 <- utils::read.table(refseq_link_1, header = TRUE,
                                             sep = "\t", comment.char = "",
                                             quote = "", skip = 1)
-        refseq_link_2 <- paste("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
+        refseq_link_2 <- paste("https://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
                                "vertebrate_other", "/assembly_summary.txt",
                                sep = "")
         refseq_table_2 <- utils::read.table(refseq_link_2, header = TRUE,
                                             sep = "\t", comment.char = "",
                                             quote = "", skip = 1)
-        refseq_link_3 <- paste("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
+        refseq_link_3 <- paste("https://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
                                "invertebrate", "/assembly_summary.txt",
                                sep = "")
         refseq_table_3 <- utils::read.table(refseq_link_3, header = TRUE,
                                             sep = "\t", comment.char = "",
                                             quote = "", skip = 1)
-        refseq_link_4 <- paste("ftp://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
+        refseq_link_4 <- paste("https://ftp.ncbi.nlm.nih.gov/genomes/refseq/",
                                "protozoa", "/assembly_summary.txt", sep = "")
         refseq_table_4 <- utils::read.table(refseq_link_4, header = TRUE,
                                             sep = "\t", comment.char = "",
@@ -146,7 +144,7 @@ download_refseq <- function(taxon, reference = TRUE, representative = FALSE,
                    "NCBI database. Try a different taxon.")
     
     # Filter the table, keep the lines with species or strains of input
-    
+
     # If the taxon specifiec is a strain or species with no strain,
         # filter the table by the taxon
     # Otherwise filter the table by the taxon in the children list
@@ -162,12 +160,12 @@ download_refseq <- function(taxon, reference = TRUE, representative = FALSE,
         species_table <- species_table[
             species_table$refseq_category %in% c("reference genome",
                                                  "representative genome"), ]
-    } else if (!representative & reference) species_table <- 
+    } else if (!representative & reference) species_table <-
         species_table[species_table$refseq_category == "reference genome", ]
 
     total_genomes <- nrow(species_table)
     if (total_genomes == 0) {
-        stop("No available genome for ", taxon, 
+        stop("No available genome for ", taxon,
         " - try setting both `representative` and `reference`",
         " to either TRUE or FALSE")
     } else {
@@ -228,7 +226,7 @@ download_refseq <- function(taxon, reference = TRUE, representative = FALSE,
                 }
                 ## Delete intermediate download files
                 unlink(download_dir, recursive = TRUE, force = TRUE)
-                }, error = function(e) cat("ERROR :", 
+                }, error = function(e) cat("ERROR :",
                                            conditionMessage(e), "\n"))
         }
         # Ensure removal of intermediate folder of files
